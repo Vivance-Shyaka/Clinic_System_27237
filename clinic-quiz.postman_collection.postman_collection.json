@@ -1,0 +1,748 @@
+{
+  "info": {
+    "_postman_id": "5d78f624-89e4-4fbe-9463-65f916a5174a",
+    "name": "clinic-quiz.postman_collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54810394",
+    "_collection_link": "https://go.postman.co/collection/54810394-5d78f624-89e4-4fbe-9463-65f916a5174a?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "derived queries",
+      "item": [
+        {
+          "name": "A1. Find Patients by Last Name",
+          "item": [
+            {
+              "name": "A1 · GET /api/patient/by-last-name?lastName=uwase",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const names = arr => arr.map(x => x.firstName + \" \" + x.lastName);",
+                      "const list = pm.response.json();",
+                      "pm.collectionVariables.set(\"a1Count\", String(list.length));",
+                      "pm.test(\"Every patient has the last name Uwase (any letter case)\", function () { pm.expect(list.length > 0 && list.every(p => p.lastName.toLowerCase() === \"uwase\")).to.be.true; });",
+                      "pm.test(\"Claudine and Jean are in the list\", function () { pm.expect(names(list).includes(\"Claudine Uwase\") && names(list).includes(\"Jean Uwase\")).to.be.true; });",
+                      "pm.test(\"Sorted by first name, A to Z\", function () { const f = list.map(p => p.firstName); pm.expect(f.join() === f.slice().sort((a, b) => a.localeCompare(b)).join()).to.be.true; });",
+                      "pm.test(\"Eric Habimana is NOT in the list\", function () { pm.expect(!names(list).includes(\"Eric Habimana\")).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/patient/by-last-name?lastName=uwase",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "by-last-name"
+                  ],
+                  "query": [
+                    {
+                      "key": "lastName",
+                      "value": "uwase"
+                    }
+                  ]
+                }
+                
+              },
+              "response": []
+            },
+            {
+              "name": "A1 · lastName=UWASE (upper case gives the same result)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const list = pm.response.json();",
+                      "pm.test(\"Same number of patients as the lower-case search\", function () { pm.expect(String(list.length) === pm.collectionVariables.get(\"a1Count\")).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/patient/by-last-name?lastName=UWASE",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "by-last-name"
+                  ],
+                  "query": [
+                    {
+                      "key": "lastName",
+                      "value": "UWASE"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "A2. Appointments by Status",
+          "item": [
+            {
+              "name": "A2 · GET /api/appointment/by-status?status=SCHEDULED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const d = a => String(a.appointmentDate).substring(0, 10);",
+                      "const isSorted = arr => arr.join() === arr.slice().sort().join();",
+                      "const list = pm.response.json();",
+                      "const reasons = list.map(a => a.reason);",
+                      "pm.test(\"Every appointment is SCHEDULED\", function () { pm.expect(list.length > 0 && list.every(a => a.status === \"SCHEDULED\")).to.be.true; });",
+                      "pm.test(\"Sorted by date, earliest first\", function () { pm.expect(isSorted(list.map(d))).to.be.true; });",
+                      "pm.test(\"Contains Blood test, Blood pressure\", function () { pm.expect([\"Blood test\", \"Blood pressure\"].every(r => reasons.includes(r))).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/by-status?status=SCHEDULED",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "by-status"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "SCHEDULED"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "A2 · status=CONFIRMED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const d = a => String(a.appointmentDate).substring(0, 10);",
+                      "const isSorted = arr => arr.join() === arr.slice().sort().join();",
+                      "const list = pm.response.json();",
+                      "const reasons = list.map(a => a.reason);",
+                      "pm.test(\"Every appointment is CONFIRMED\", function () { pm.expect(list.length > 0 && list.every(a => a.status === \"CONFIRMED\")).to.be.true; });",
+                      "pm.test(\"Sorted by date, earliest first\", function () { pm.expect(isSorted(list.map(d))).to.be.true; });",
+                      "pm.test(\"Contains Follow-up\", function () { pm.expect([\"Follow-up\"].every(r => reasons.includes(r))).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/by-status?status=CONFIRMED",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "by-status"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "CONFIRMED"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "A2 · status=COMPLETED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const d = a => String(a.appointmentDate).substring(0, 10);",
+                      "const isSorted = arr => arr.join() === arr.slice().sort().join();",
+                      "const list = pm.response.json();",
+                      "const reasons = list.map(a => a.reason);",
+                      "pm.test(\"Every appointment is COMPLETED\", function () { pm.expect(list.length > 0 && list.every(a => a.status === \"COMPLETED\")).to.be.true; });",
+                      "pm.test(\"Sorted by date, earliest first\", function () { pm.expect(isSorted(list.map(d))).to.be.true; });",
+                      "pm.test(\"Contains Annual review\", function () { pm.expect([\"Annual review\"].every(r => reasons.includes(r))).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/by-status?status=COMPLETED",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "by-status"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "COMPLETED"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "A2 · status=CANCELLED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const d = a => String(a.appointmentDate).substring(0, 10);",
+                      "const isSorted = arr => arr.join() === arr.slice().sort().join();",
+                      "const list = pm.response.json();",
+                      "const reasons = list.map(a => a.reason);",
+                      "pm.test(\"Every appointment is CANCELLED\", function () { pm.expect(list.length > 0 && list.every(a => a.status === \"CANCELLED\")).to.be.true; });",
+                      "pm.test(\"Sorted by date, earliest first\", function () { pm.expect(isSorted(list.map(d))).to.be.true; });",
+                      "pm.test(\"Contains Cancelled visit\", function () { pm.expect([\"Cancelled visit\"].every(r => reasons.includes(r))).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/by-status?status=CANCELLED",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "by-status"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "CANCELLED"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "A3. Appointments in a Date Range",
+          "item": [
+            {
+              "name": "A3 · GET /api/appointment/between?start=2026-10-01&end=2026-10-31",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const d = a => String(a.appointmentDate).substring(0, 10);",
+                      "const isSorted = arr => arr.join() === arr.slice().sort().join();",
+                      "const list = pm.response.json();",
+                      "const reasons = list.map(a => a.reason);",
+                      "pm.test(\"Every date is inside 2026-10-01 .. 2026-10-31\", function () { pm.expect(list.length > 0 && list.every(a => d(a) >= \"2026-10-01\" && d(a) <= \"2026-10-31\")).to.be.true; });",
+                      "pm.test(\"Both ends are included (Follow-up on 10-01, Annual review on 10-31)\", function () { pm.expect(reasons.includes(\"Follow-up\") && reasons.includes(\"Annual review\")).to.be.true; });",
+                      "pm.test(\"Outside the range: Out of range (11-05) and Cancelled visit (09-15) are NOT included\", function () { pm.expect(!reasons.includes(\"Out of range\") && !reasons.includes(\"Cancelled visit\")).to.be.true; });",
+                      "pm.test(\"Sorted by date, earliest first\", function () { pm.expect(isSorted(list.map(d))).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/between?start=2026-10-01&end=2026-10-31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "between"
+                  ],
+                  "query": [
+                    {
+                      "key": "start",
+                      "value": "2026-10-01"
+                    },
+                    {
+                      "key": "end",
+                      "value": "2026-10-31"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "A4. No Double Booking",
+          "item": [
+            {
+              "name": "A4 ·  POST /api/appointment/save - the SAME doctor on the SAME day again (refused)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                      "pm.test(\"Message says: Doctor is already booked on that date\", function () { pm.expect(pm.response.text()).to.include(\"Doctor is already booked on that date\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"appointmentDate\": \"2026-12-01\",\n  \"reason\": \"Second booking\",\n  \"status\": \"SCHEDULED\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/save?doctorId={{aminaId}}&patientId={{jeanId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "save"
+                  ],
+                  "query": [
+                    {
+                      "key": "doctorId",
+                      "value": "{{aminaId}}"
+                    },
+                    {
+                      "key": "patientId",
+                      "value": "{{jeanId}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "JPQL with joins",
+      "item": [
+        {
+          "name": "B1. Doctors by Specialization",
+          "item": [
+            {
+              "name": "B1 · name=CARDIOLOGY (upper case gives the same result)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const list = pm.response.json();",
+                      "pm.test(\"Same number of doctors as the lower-case search\", function () { pm.expect(String(list.length) === pm.collectionVariables.get(\"b1Count\")).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/doctor/by-specialization?name=CARDIOLOGY",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "doctor",
+                    "by-specialization"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "CARDIOLOGY"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "B2. Doctors Without an Office",
+          "item": [
+            {
+              "name": "B2 · GET /api/doctor/without-office",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const list = pm.response.json();",
+                      "const last = list.map(x => x.lastName);",
+                      "pm.test(\"Every doctor in the list has no office\", function () { pm.expect(list.every(x => x.office === null || x.office === undefined)).to.be.true; });",
+                      "pm.test(\"Nodesk is in the list (did you run the SQL step from the setup folder?)\", function () { pm.expect(last.includes(\"Nodesk\")).to.be.true; });",
+                      "pm.test(\"Doctors WITH an office (Kayitesi, Ndayisaba) are NOT in the list\", function () { pm.expect(!last.includes(\"Kayitesi\") && !last.includes(\"Ndayisaba\")).to.be.true; });",
+                      "pm.test(\"Sorted by last name\", function () { pm.expect(last.join() === last.slice().sort((a, b) => a.localeCompare(b)).join()).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/doctor/without-office",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "doctor",
+                    "without-office"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "B3. Specializations Nobody Offers",
+          "item": [
+            {
+              "name": "B3 · GET /api/specialization/unused",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const list = pm.response.json();",
+                      "const n = list.map(s => s.name.toLowerCase());",
+                      "pm.test(\"Quiz Unused Specialty is listed\", function () { pm.expect(n.includes(\"quiz unused specialty\")).to.be.true; });",
+                      "pm.test(\"Cardiology (held by two doctors) is NOT listed\", function () { pm.expect(!n.includes(\"cardiology\")).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/specialization/unused",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "specialization",
+                    "unused"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "B4. Patients of a Doctor",
+          "item": [
+            {
+              "name": "B4 · GET /api/patient/of-doctor/{doctorId}",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const names = arr => arr.map(x => x.firstName + \" \" + x.lastName);",
+                      "const list = pm.response.json();",
+                      "pm.test(\"Exactly Claudine Uwase and Jean Uwase (Amina's patients)\", function () { pm.expect(list.length === 2 && names(list).includes(\"Claudine Uwase\") && names(list).includes(\"Jean Uwase\")).to.be.true; });",
+                      "pm.test(\"Each patient is listed once, even with several appointments (Jean has 4)\", function () { pm.expect(new Set(list.map(p => p.id)).size === list.length).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/patient/of-doctor/{{aminaId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "of-doctor",
+                    "{{aminaId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "aggregates and bulk updates",
+      "item": [
+        {
+          "name": "C1. Appointments per Status",
+          "item": [
+            {
+              "name": "C1 · GET /api/appointment/stats/by-status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const rows = pm.response.json();",
+                      "const valid = [\"SCHEDULED\", \"CONFIRMED\", \"COMPLETED\", \"CANCELLED\"];",
+                      "const total = rows.reduce((s, r) => s + r[1], 0);",
+                      "pm.collectionVariables.set(\"statsTotal\", String(total));",
+                      "pm.test(\"Every row is [status, count]\", function () { pm.expect(rows.length > 0 && rows.every(r => Array.isArray(r) && r.length === 2 && valid.includes(r[0]) && typeof r[1] === \"number\")).to.be.true; });",
+                      "pm.test(\"All four statuses have at least one appointment\", function () { pm.expect(valid.every(s => rows.some(r => r[0] === s && r[1] >= 1))).to.be.true; });",
+                      "pm.test(\"One row per status (no repeats)\", function () { pm.expect(new Set(rows.map(r => r[0])).size === rows.length).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/stats/by-status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "stats",
+                    "by-status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "C2. Frequent patients",
+          "item": [
+            {
+              "name": "GET /api/patient/freq uent?min=3",
+              "request": {
+                "method": "GET",
+                "header": []
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "C3. Busiest Office",
+          "item": [
+            {
+              "name": "C3 · GET /api/office/busiest",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const r = pm.response.json();",
+                      "pm.test(\"The answer is [office name, office number, appointment count]\", function () { pm.expect(Array.isArray(r) && r.length === 3 && typeof r[0] === \"string\" && typeof r[1] === \"number\" && typeof r[2] === \"number\").to.be.true; });",
+                      "pm.test(\"The busiest office has at least 4 appointments\", function () { pm.expect(r[2] >= 4).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/office/busiest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "office",
+                    "busiest"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "C4. Doctor Is Absent",
+          "item": [
+            {
+              "name": "C4 · 2 PATCH /api/appointment/cancel-day?doctorId=...&date=2026-10-20",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const text = pm.response.text();",
+                      "const before = pm.collectionVariables.get(\"beforeStatus\");",
+                      "const expected = (before === \"SCHEDULED\" || before === \"CONFIRMED\") ? \"1 appointments cancelled\" : \"0 appointments cancelled\";",
+                      "pm.test(\"Message is: \" + expected, function () { pm.expect(text === expected).to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/cancel-day?doctorId={{aminaId}}&date=2026-10-20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "cancel-day"
+                  ],
+                  "query": [
+                    {
+                      "key": "doctorId",
+                      "value": "{{aminaId}}"
+                    },
+                    {
+                      "key": "date",
+                      "value": "2026-10-20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "C4 · 3 check: the appointment is now CANCELLED",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                      "const a = pm.response.json();",
+                      "pm.test(\"Status is CANCELLED\", function () { pm.expect(a.status === \"CANCELLED\").to.be.true; });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/appointment/{{apptHeartCheck}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "appointment",
+                    "{{apptHeartCheck}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+   
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8084"
+    }
+  ]
+}
