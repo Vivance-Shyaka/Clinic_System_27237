@@ -39,10 +39,16 @@ public class OfficeService {
         return officeRepository.findById(id);
     }
 
+    public List<Office> getFreeOffices() {
+        return officeRepository.findFreeOffices();
+    }
+
     public Optional<Object[]> getBusiestOffice() {
-        return officeRepository.findOfficesByAppointmentCount(PageRequest.of(0, 1))
-                .stream()
-                .findFirst();
+        List<Object[]> offices = officeRepository.findOfficesByAppointmentCount(PageRequest.of(0, 1));
+        if (offices.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(offices.get(0));
     }
 
     public String updateOffice(UUID id, Office updatedOffice) {

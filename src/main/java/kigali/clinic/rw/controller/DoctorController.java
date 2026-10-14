@@ -3,7 +3,9 @@ package kigali.clinic.rw.controller;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
 
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,10 +19,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import kigali.clinic.rw.domain.Doctor;
+import kigali.clinic.rw.domain.Appointment;
 import kigali.clinic.rw.service.DoctorService;
 
 @RestController
-@RequestMapping("/api/doctor")
+@RequestMapping({"/api/doctors", "/api/doctor"})
 public class DoctorController {
 
     private final DoctorService doctorService;
@@ -56,6 +59,64 @@ public class DoctorController {
         return new ResponseEntity<>(doctorService.getDoctorsWithoutOffice(), HttpStatus.OK);
     }
 
+    @PutMapping("/{doctorId}/specializations/{specializationId}")
+    public ResponseEntity<String> addSpecialization(
+            @PathVariable UUID doctorId,
+            @PathVariable UUID specializationId) {
+        String message = doctorService.addSpecialization(doctorId, specializationId);
+        if ("Specialization added to the doctor".equals(message)) {
+            return new ResponseEntity<>(message, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(message, errorStatus(message));
+    }
+
+    @DeleteMapping("/{doctorId}/specializations/{specializationId}")
+    public ResponseEntity<String> removeSpecialization(
+            @PathVariable UUID doctorId,
+            @PathVariable UUID specializationId) {
+        String message = doctorService.removeSpecialization(doctorId, specializationId);
+        if ("Specialization removed from the doctor".equals(message)) {
+            return new ResponseEntity<>(message, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(message, errorStatus(message));
+    }
+
+    @PatchMapping("/{doctorId}/office")
+    public ResponseEntity<String> changeOffice(
+            @PathVariable UUID doctorId,
+            @RequestParam int officeNumber) {
+        String message = doctorService.changeOffice(doctorId, officeNumber);
+        if ("Office changed successfully".equals(message)) {
+            return new ResponseEntity<>(message, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(message, errorStatus(message));
+    }
+
+    @GetMapping("/{doctorId}/agenda")
+    public ResponseEntity<?> getAgenda(
+            @PathVariable UUID doctorId,
+            @RequestParam String date) {
+        Optional<List<Appointment>> appointments =
+                doctorService.getAgenda(doctorId, LocalDate.parse(date));
+        if (appointments.isEmpty()) {
+            return new ResponseEntity<>("The doctor with that id does not exist", HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(appointments.get(), HttpStatus.OK);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Doctor>> searchDoctors(@RequestParam String name) {
+        return new ResponseEntity<>(doctorService.searchDoctors(name), HttpStatus.OK);
+    }
+
+    @GetMapping("/workload")
+    public ResponseEntity<List<Object[]>> getWorkload(
+            @RequestParam String start,
+            @RequestParam String end) {
+        return new ResponseEntity<>(
+                doctorService.getWorkload(LocalDate.parse(start), LocalDate.parse(end)), HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getDoctorById(@PathVariable UUID id) {
         Optional<Doctor> doctor = doctorService.getDoctorById(id);
@@ -87,7 +148,7 @@ public class DoctorController {
     }
 
     private HttpStatus errorStatus(String message) {
-        if (message.endsWith("not found")) {
+        if (message.endsWith("not found") || message.endsWith("does not exist")) {
             return HttpStatus.NOT_FOUND;
         }
         if (message.endsWith("are required") || message.endsWith("is required")) {

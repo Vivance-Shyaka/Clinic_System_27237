@@ -1,11 +1,16 @@
 package kigali.clinic.rw.service;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import kigali.clinic.rw.domain.Appointment;
+import kigali.clinic.rw.domain.AppointmentStatus;
+import kigali.clinic.rw.domain.Doctor;
 import kigali.clinic.rw.domain.Patient;
 import kigali.clinic.rw.repository.AppointmentRepository;
 import kigali.clinic.rw.repository.DoctorRepository;
@@ -50,12 +55,29 @@ public class PatientService {
     }
 
     public Optional<List<Patient>> getPatientsOfDoctor(UUID doctorId) {
-        return doctorRepository.findById(doctorId)
-                .map(doctor -> patientRepository.findPatientsOfDoctor(doctorId));
+        Optional<Doctor> doctor = doctorRepository.findById(doctorId);
+        if (doctor.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(patientRepository.findPatientsOfDoctor(doctorId));
     }
 
     public List<Patient> getFrequentPatients(long min) {
         return patientRepository.findFrequentPatients(min);
+    }
+
+    public Optional<List<Appointment>> getUpcomingAppointments(String ssNumber) {
+        Optional<Patient> patient = patientRepository.findBySsNumber(ssNumber);
+        if (patient.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<AppointmentStatus> statuses = Arrays.asList(
+                AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED);
+        List<Appointment> appointments = appointmentRepository
+                .findByPatientAndAppointmentDateGreaterThanEqualAndStatusInOrderByAppointmentDateAsc(
+                        patient.get(), LocalDate.now(), statuses);
+        return Optional.of(appointments);
     }
 
     public String updatePatient(UUID id, Patient updatedPatient) {
@@ -76,6 +98,7 @@ public class PatientService {
         patient.setFirstName(updatedPatient.getFirstName());
         patient.setLastName(updatedPatient.getLastName());
         patient.setDateOfBirth(updatedPatient.getDateOfBirth());
+        patient.setSsNumber(updatedPatient.getSsNumber());
         patientRepository.save(patient);
 
         return "Patient is updated successfully";

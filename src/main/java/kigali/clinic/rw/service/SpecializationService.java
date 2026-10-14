@@ -53,8 +53,12 @@ public class SpecializationService {
 
     @Transactional(readOnly = true)
     public Optional<List<Doctor>> getDoctorsBySpecialization(UUID id) {
-        return specializationRepository.findById(id)
-                .map(specialization -> new ArrayList<>(specialization.getDoctors()));
+        Optional<Specialization> specialization = specializationRepository.findById(id);
+        if (specialization.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Doctor> doctors = new ArrayList<>(specialization.get().getDoctors());
+        return Optional.of(doctors);
     }
 
     public List<Specialization> getUnusedSpecializations() {
@@ -83,12 +87,19 @@ public class SpecializationService {
         return "Specialization is updated successfully";
     }
 
+    @Transactional
     public String deleteSpecialization(UUID id) {
-        if (!specializationRepository.existsById(id)) {
+        Optional<Specialization> existingSpecialization = specializationRepository.findById(id);
+        if (existingSpecialization.isEmpty()) {
             return "Specialization not found";
         }
 
-        specializationRepository.deleteById(id);
+        Specialization specialization = existingSpecialization.get();
+        for (Doctor doctor : specialization.getDoctors()) {
+            doctor.getSpecializations().remove(specialization);
+            doctorRepository.save(doctor);
+        }
+        specializationRepository.delete(specialization);
         return "Specialization is deleted successfully";
     }
 
@@ -106,12 +117,12 @@ public class SpecializationService {
 
         Specialization specialization = requestedSpecialization.get();
         Doctor doctor = requestedDoctor.get();
-        if (specialization.getDoctors().contains(doctor)) {
+        if (doctor.getSpecializations().contains(specialization)) {
             return "Doctor already has this specialization";
         }
 
-        specialization.getDoctors().add(doctor);
-        specializationRepository.save(specialization);
+        doctor.getSpecializations().add(specialization);
+        doctorRepository.save(doctor);
         return "Doctor is added to specialization successfully";
     }
 
@@ -128,11 +139,12 @@ public class SpecializationService {
         }
 
         Specialization specialization = requestedSpecialization.get();
-        if (!specialization.getDoctors().remove(requestedDoctor.get())) {
+        Doctor doctor = requestedDoctor.get();
+        if (!doctor.getSpecializations().remove(specialization)) {
             return "Doctor does not have this specialization";
         }
 
-        specializationRepository.save(specialization);
+        doctorRepository.save(doctor);
         return "Doctor is removed from specialization successfully";
     }
 }

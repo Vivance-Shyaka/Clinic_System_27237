@@ -20,7 +20,7 @@ import kigali.clinic.rw.domain.Specialization;
 import kigali.clinic.rw.service.SpecializationService;
 
 @RestController
-@RequestMapping("/api/specialization")
+@RequestMapping({"/api/specializations", "/api/specialization"})
 public class SpecializationController {
 
     private final SpecializationService specializationService;

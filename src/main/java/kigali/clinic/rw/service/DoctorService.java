@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import kigali.clinic.rw.domain.Doctor;
 import kigali.clinic.rw.domain.Office;
 import kigali.clinic.rw.domain.Specialization;
+import kigali.clinic.rw.domain.Appointment;
+import kigali.clinic.rw.domain.AppointmentStatus;
 import kigali.clinic.rw.repository.AppointmentRepository;
 import kigali.clinic.rw.repository.DoctorRepository;
 import kigali.clinic.rw.repository.OfficeRepository;
@@ -81,12 +84,8 @@ public class DoctorService {
         newDoctor.setLastName(doctor.getLastName());
         newDoctor.setDateOfBirth(doctor.getDateOfBirth());
         newDoctor.setOffice(office);
-        Doctor savedDoctor = doctorRepository.save(newDoctor);
-
-        for (Specialization specialization : specializations) {
-            specialization.getDoctors().add(savedDoctor);
-            specializationRepository.save(specialization);
-        }
+        newDoctor.setSpecializations(specializations);
+        doctorRepository.save(newDoctor);
 
         return "Doctor is saved successfully";
     }
@@ -105,6 +104,95 @@ public class DoctorService {
 
     public List<Doctor> getDoctorsWithoutOffice() {
         return doctorRepository.findDoctorsWithoutOffice();
+    }
+
+    @Transactional
+    public String addSpecialization(UUID doctorId, UUID specializationId) {
+        Optional<Doctor> requestedDoctor = doctorRepository.findById(doctorId);
+        if (requestedDoctor.isEmpty()) {
+            return "The doctor with that id does not exist";
+        }
+
+        Optional<Specialization> requestedSpecialization =
+                specializationRepository.findById(specializationId);
+        if (requestedSpecialization.isEmpty()) {
+            return "That specialization does not exist";
+        }
+
+        Doctor doctor = requestedDoctor.get();
+        Specialization specialization = requestedSpecialization.get();
+        if (doctor.getSpecializations().contains(specialization)) {
+            return "The doctor already has that specialization";
+        }
+
+        doctor.getSpecializations().add(specialization);
+        doctorRepository.save(doctor);
+        return "Specialization added to the doctor";
+    }
+
+    @Transactional
+    public String removeSpecialization(UUID doctorId, UUID specializationId) {
+        Optional<Doctor> requestedDoctor = doctorRepository.findById(doctorId);
+        if (requestedDoctor.isEmpty()) {
+            return "The doctor with that id does not exist";
+        }
+
+        Optional<Specialization> requestedSpecialization =
+                specializationRepository.findById(specializationId);
+        if (requestedSpecialization.isEmpty()) {
+            return "That specialization does not exist";
+        }
+
+        Doctor doctor = requestedDoctor.get();
+        if (!doctor.getSpecializations().remove(requestedSpecialization.get())) {
+            return "The doctor does not have that specialization";
+        }
+
+        doctorRepository.save(doctor);
+        return "Specialization removed from the doctor";
+    }
+
+    @Transactional
+    public String changeOffice(UUID doctorId, int officeNumber) {
+        Optional<Doctor> requestedDoctor = doctorRepository.findById(doctorId);
+        if (requestedDoctor.isEmpty()) {
+            return "The doctor with that id does not exist";
+        }
+
+        Optional<Office> requestedOffice = officeRepository.findByOfficeNumber(officeNumber);
+        if (requestedOffice.isEmpty()) {
+            return "The office with that office number does not exist";
+        }
+
+        Doctor doctor = requestedDoctor.get();
+        Office office = requestedOffice.get();
+        if (doctorRepository.existsByOfficeAndIdNot(office, doctorId)) {
+            return "That office is taken by other doctor";
+        }
+
+        doctor.setOffice(office);
+        doctorRepository.save(doctor);
+        return "Office changed successfully";
+    }
+
+    public Optional<List<Appointment>> getAgenda(UUID doctorId, LocalDate date) {
+        Optional<Doctor> doctor = doctorRepository.findById(doctorId);
+        if (doctor.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Appointment> appointments = appointmentRepository
+                .findByDoctorAndAppointmentDateAndStatusNotOrderByAppointmentDateAsc(
+                        doctor.get(), date, AppointmentStatus.CANCELLED);
+        return Optional.of(appointments);
+    }
+
+    public List<Doctor> searchDoctors(String name) {
+        return doctorRepository.searchByName(name);
+    }
+
+    public List<Object[]> getWorkload(LocalDate start, LocalDate end) {
+        return doctorRepository.findWorkloadByStatusAndDateBetween(
+                AppointmentStatus.COMPLETED, start, end);
     }
 
     public String updateDoctor(UUID id, Doctor updatedDoctor, UUID officeId) {
@@ -159,10 +247,8 @@ public class DoctorService {
             return "Doctor has appointments and cannot be deleted";
         }
 
-        for (Specialization specialization : new ArrayList<>(doctor.getSpecializations())) {
-            specialization.getDoctors().remove(doctor);
-        }
-
+        doctor.getSpecializations().clear();
+        doctorRepository.save(doctor);
         doctorRepository.delete(doctor);
         return "Doctor is deleted successfully";
     }

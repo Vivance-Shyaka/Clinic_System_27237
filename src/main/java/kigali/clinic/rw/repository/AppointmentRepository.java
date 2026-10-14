@@ -43,19 +43,43 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             LocalDate appointmentDate,
             AppointmentStatus status);
 
+    boolean existsByDoctorAndAppointmentDateAndStatusNotAndIdNot(
+            Doctor doctor,
+            LocalDate appointmentDate,
+            AppointmentStatus status,
+            UUID id);
+
+    List<Appointment> findByDoctorAndAppointmentDateAndStatusNotOrderByAppointmentDateAsc(
+            Doctor doctor,
+            LocalDate appointmentDate,
+            AppointmentStatus status);
+
+    List<Appointment> findByPatientAndAppointmentDateGreaterThanEqualAndStatusInOrderByAppointmentDateAsc(
+            Patient patient,
+            LocalDate appointmentDate,
+            List<AppointmentStatus> statuses);
+
+    long countByAppointmentDate(LocalDate appointmentDate);
+
+    long countByStatus(AppointmentStatus status);
+
     @Query("SELECT a.status, COUNT(a) FROM Appointment a GROUP BY a.status")
     List<Object[]> countAppointmentsByStatus();
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Appointment a SET a.status = kigali.clinic.rw.domain.AppointmentStatus.CANCELLED "
+    @Query("UPDATE Appointment a SET a.status = :cancelledStatus "
             + "WHERE a.doctor.id = :doctorId AND a.appointmentDate = :date "
-            + "AND a.status <> kigali.clinic.rw.domain.AppointmentStatus.COMPLETED "
-            + "AND a.status <> kigali.clinic.rw.domain.AppointmentStatus.CANCELLED")
-    int cancelDoctorAppointmentsOnDate(@Param("doctorId") UUID doctorId, @Param("date") LocalDate date);
+            + "AND a.status <> :completedStatus "
+            + "AND a.status <> :cancelledStatus")
+    int cancelDoctorAppointmentsOnDate(
+            @Param("doctorId") UUID doctorId,
+            @Param("date") LocalDate date,
+            @Param("cancelledStatus") AppointmentStatus cancelledStatus,
+            @Param("completedStatus") AppointmentStatus completedStatus);
 
     @Modifying(clearAutomatically = true)
-    @Query("DELETE FROM Appointment a "
-            + "WHERE a.status = kigali.clinic.rw.domain.AppointmentStatus.CANCELLED "
-            + "AND a.appointmentDate < :date")
-    int deleteCancelledBefore(@Param("date") LocalDate date);
+    @Query("DELETE FROM Appointment a WHERE a.status = :status AND a.appointmentDate < :date")
+    int deleteAppointmentsWithStatusBefore(
+            @Param("status") AppointmentStatus status,
+            @Param("date") LocalDate date);
 }

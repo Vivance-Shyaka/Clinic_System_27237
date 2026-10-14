@@ -2,6 +2,7 @@ package kigali.clinic.rw.repository;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +25,8 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             String lastName,
             Date dateOfBirth,
             UUID id);
+
+    Optional<Patient> findBySsNumber(String ssNumber);
 
     List<Patient> findByLastNameIgnoreCaseOrderByFirstNameAsc(String lastName);
 

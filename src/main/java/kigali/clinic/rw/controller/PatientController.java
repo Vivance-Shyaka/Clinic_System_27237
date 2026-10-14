@@ -16,11 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import kigali.clinic.rw.domain.Appointment;
 import kigali.clinic.rw.domain.Patient;
 import kigali.clinic.rw.service.PatientService;
 
 @RestController
-@RequestMapping("/api/patient")
+@RequestMapping({"/api/patients", "/api/patient"})
 public class PatientController {
 
     private final PatientService patientService;
@@ -60,6 +61,15 @@ public class PatientController {
     @GetMapping("/frequent")
     public ResponseEntity<List<Patient>> getFrequentPatients(@RequestParam long min) {
         return new ResponseEntity<>(patientService.getFrequentPatients(min), HttpStatus.OK);
+    }
+
+    @GetMapping("/{ssNumber}/upcoming")
+    public ResponseEntity<?> getUpcomingAppointments(@PathVariable String ssNumber) {
+        Optional<List<Appointment>> appointments = patientService.getUpcomingAppointments(ssNumber);
+        if (appointments.isEmpty()) {
+            return new ResponseEntity<>("That patient with that ssnumber does not exist", HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(appointments.get(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")

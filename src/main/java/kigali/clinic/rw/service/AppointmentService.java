@@ -17,6 +17,7 @@ import kigali.clinic.rw.domain.Patient;
 import kigali.clinic.rw.repository.AppointmentRepository;
 import kigali.clinic.rw.repository.DoctorRepository;
 import kigali.clinic.rw.repository.PatientRepository;
+import kigali.clinic.rw.repository.PrescriptionRepository;
 
 @Service
 public class AppointmentService {
@@ -24,14 +25,17 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
+    private final PrescriptionRepository prescriptionRepository;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             DoctorRepository doctorRepository,
-            PatientRepository patientRepository) {
+            PatientRepository patientRepository,
+            PrescriptionRepository prescriptionRepository) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
+        this.prescriptionRepository = prescriptionRepository;
     }
 
     public String saveAppointment(Appointment appointment, UUID doctorId, UUID patientId) {
@@ -49,13 +53,12 @@ public class AppointmentService {
             return "appointmentDate is required";
         }
 
-        AppointmentStatus status = appointment.getStatus() != null
-                ? appointment.getStatus()
-                : AppointmentStatus.SCHEDULED;
+        if (appointment.getAppointmentDate().isBefore(LocalDate.now())) {
+            return "Appointment date cannot be in the past";
+        }
 
-        if (status != AppointmentStatus.CANCELLED
-                && appointmentRepository.existsByDoctorAndAppointmentDateAndStatusNot(
-                        requestedDoctor.get(), appointment.getAppointmentDate(), AppointmentStatus.CANCELLED)) {
+        if (appointmentRepository.existsByDoctorAndAppointmentDateAndStatusNot(
+                requestedDoctor.get(), appointment.getAppointmentDate(), AppointmentStatus.CANCELLED)) {
             return "Doctor is already booked on that date";
         }
 
@@ -64,7 +67,7 @@ public class AppointmentService {
         newAppointment.setPatient(requestedPatient.get());
         newAppointment.setAppointmentDate(appointment.getAppointmentDate());
         newAppointment.setReason(appointment.getReason());
-        newAppointment.setStatus(status);
+        newAppointment.setStatus(AppointmentStatus.SCHEDULED);
         appointmentRepository.save(newAppointment);
 
         return "Appointment is saved successfully";
@@ -79,13 +82,19 @@ public class AppointmentService {
     }
 
     public Optional<List<Appointment>> getAppointmentsByDoctor(UUID doctorId) {
-        return doctorRepository.findById(doctorId)
-                .map(appointmentRepository::findByDoctor);
+        Optional<Doctor> doctor = doctorRepository.findById(doctorId);
+        if (doctor.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(appointmentRepository.findByDoctor(doctor.get()));
     }
 
     public Optional<List<Appointment>> getAppointmentsByPatient(UUID patientId) {
-        return patientRepository.findById(patientId)
-                .map(appointmentRepository::findByPatient);
+        Optional<Patient> patient = patientRepository.findById(patientId);
+        if (patient.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(appointmentRepository.findByPatient(patient.get()));
     }
 
     public List<Appointment> getAppointmentsByStatus(AppointmentStatus status) {
@@ -106,14 +115,62 @@ public class AppointmentService {
 
     @Transactional
     public String cancelDoctorDay(UUID doctorId, LocalDate date) {
-        int cancelled = appointmentRepository.cancelDoctorAppointmentsOnDate(doctorId, date);
+        int cancelled = appointmentRepository.cancelDoctorAppointmentsOnDate(
+                doctorId, date, AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED);
         return cancelled + " appointments cancelled";
     }
 
     @Transactional
     public String deleteCancelledBefore(LocalDate date) {
-        int deleted = appointmentRepository.deleteCancelledBefore(date);
+        int deleted = appointmentRepository.deleteAppointmentsWithStatusBefore(
+                AppointmentStatus.CANCELLED, date);
         return deleted + " appointments deleted";
+    }
+
+    public String updateAppointmentStatus(UUID id, AppointmentStatus newStatus) {
+        Optional<Appointment> existingAppointment = appointmentRepository.findById(id);
+        if (existingAppointment.isEmpty()) {
+            return "The appointment with that id does not exist";
+        }
+
+        Appointment appointment = existingAppointment.get();
+        AppointmentStatus currentStatus = appointment.getStatus();
+        boolean allowed = (currentStatus == AppointmentStatus.SCHEDULED
+                && (newStatus == AppointmentStatus.CONFIRMED || newStatus == AppointmentStatus.CANCELLED))
+                || (currentStatus == AppointmentStatus.CONFIRMED
+                && (newStatus == AppointmentStatus.COMPLETED || newStatus == AppointmentStatus.CANCELLED));
+        if (!allowed) {
+            return "Cannot change status from " + currentStatus + " to " + newStatus;
+        }
+
+        appointment.setStatus(newStatus);
+        appointmentRepository.save(appointment);
+        return "Appointment status updated successfully";
+    }
+
+    public String rescheduleAppointment(UUID id, LocalDate newDate) {
+        Optional<Appointment> existingAppointment = appointmentRepository.findById(id);
+        if (existingAppointment.isEmpty()) {
+            return "The appointment with that id does not exist";
+        }
+
+        Appointment appointment = existingAppointment.get();
+        if (appointment.getStatus() == AppointmentStatus.COMPLETED
+                || appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            return "A " + appointment.getStatus() + " appointment cannot be rescheduled";
+        }
+        if (newDate.isBefore(LocalDate.now())) {
+            return "Appointment date cannot be in the past";
+        }
+        if (appointmentRepository.existsByDoctorAndAppointmentDateAndStatusNotAndIdNot(
+                appointment.getDoctor(), newDate, AppointmentStatus.CANCELLED, id)) {
+            return "Doctor is already booked on that date";
+        }
+
+        appointment.setAppointmentDate(newDate);
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+        appointmentRepository.save(appointment);
+        return "Appointment rescheduled successfully";
     }
 
     public String updateAppointment(UUID id, Appointment updated, UUID doctorId, UUID patientId) {
@@ -145,10 +202,6 @@ public class AppointmentService {
             return "appointmentDate is required";
         }
 
-        AppointmentStatus status = updated.getStatus() != null
-                ? updated.getStatus()
-                : appointment.getStatus();
-
         if (appointmentRepository.existsByDoctorAndPatientAndAppointmentDateAndIdNot(
                 doctor, patient, updated.getAppointmentDate(), id)) {
             return "Appointment already exists";
@@ -158,18 +211,21 @@ public class AppointmentService {
         appointment.setPatient(patient);
         appointment.setAppointmentDate(updated.getAppointmentDate());
         appointment.setReason(updated.getReason());
-        appointment.setStatus(status);
         appointmentRepository.save(appointment);
 
         return "Appointment is updated successfully";
     }
 
     public String deleteAppointment(UUID id) {
-        if (!appointmentRepository.existsById(id)) {
-            return "Appointment not found";
+        Optional<Appointment> existingAppointment = appointmentRepository.findById(id);
+        if (existingAppointment.isEmpty()) {
+            return "The appointment with that id does not exist";
+        }
+        if (prescriptionRepository.existsByAppointment(existingAppointment.get())) {
+            return "That appointment has prescriptions, delete them first";
         }
 
-        appointmentRepository.deleteById(id);
+        appointmentRepository.delete(existingAppointment.get());
         return "Appointment is deleted successfully";
     }
 }

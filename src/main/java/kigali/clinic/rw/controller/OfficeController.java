@@ -19,7 +19,7 @@ import kigali.clinic.rw.domain.Office;
 import kigali.clinic.rw.service.OfficeService;
 
 @RestController
-@RequestMapping("/api/office")
+@RequestMapping({"/api/offices", "/api/office"})
 public class OfficeController {
 
     private final OfficeService officeService;
@@ -40,6 +40,11 @@ public class OfficeController {
     @GetMapping("/all")
     public ResponseEntity<List<Office>> getAllOffices() {
         return new ResponseEntity<>(officeService.getAllOffices(), HttpStatus.OK);
+    }
+
+    @GetMapping("/free")
+    public ResponseEntity<List<Office>> getFreeOffices() {
+        return new ResponseEntity<>(officeService.getFreeOffices(), HttpStatus.OK);
     }
 
     @GetMapping("/busiest")

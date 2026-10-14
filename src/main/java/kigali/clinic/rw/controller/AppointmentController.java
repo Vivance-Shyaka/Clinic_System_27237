@@ -27,7 +27,7 @@ import kigali.clinic.rw.domain.AppointmentStatus;
 import kigali.clinic.rw.service.AppointmentService;
 
 @RestController
-@RequestMapping("/api/appointment")
+@RequestMapping({"/api/appointments", "/api/appointment"})
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
@@ -51,6 +51,37 @@ public class AppointmentController {
     @GetMapping("/all")
     public ResponseEntity<List<Appointment>> getAllAppointments() {
         return ResponseEntity.ok(appointmentService.getAllAppointments());
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<String> updateAppointmentStatus(
+            @PathVariable UUID id,
+            @RequestParam AppointmentStatus status) {
+        String message = appointmentService.updateAppointmentStatus(id, status);
+        if ("Appointment status updated successfully".equals(message)) {
+            return ResponseEntity.ok(message);
+        }
+        if (message.endsWith("does not exist")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    public ResponseEntity<String> rescheduleAppointment(
+            @PathVariable UUID id,
+            @RequestParam String newDate) {
+        String message = appointmentService.rescheduleAppointment(id, LocalDate.parse(newDate));
+        if ("Appointment rescheduled successfully".equals(message)) {
+            return ResponseEntity.ok(message);
+        }
+        if (message.endsWith("does not exist")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
+        }
+        if ("Doctor is already booked on that date".equals(message)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
     }
 
     @GetMapping("/{id}")
@@ -136,7 +167,10 @@ public class AppointmentController {
         if ("Appointment is deleted successfully".equals(message)) {
             return ResponseEntity.ok(message);
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
+        if (message.endsWith("does not exist")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
     }
 
     @DeleteMapping("/cancelled-before")
@@ -145,10 +179,10 @@ public class AppointmentController {
     }
 
     private HttpStatus errorStatus(String message) {
-        if (message.endsWith("not found")) {
+        if (message.endsWith("not found") || message.endsWith("does not exist")) {
             return HttpStatus.NOT_FOUND;
         }
-        if (message.endsWith("is required")) {
+        if (message.endsWith("is required") || message.equals("Appointment date cannot be in the past")) {
             return HttpStatus.BAD_REQUEST;
         }
         return HttpStatus.CONFLICT;
