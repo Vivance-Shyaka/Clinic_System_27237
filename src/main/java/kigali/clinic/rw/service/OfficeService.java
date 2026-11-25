@@ -82,4 +82,13 @@ public class OfficeService {
         officeRepository.deleteById(id);
         return "Office is deleted successfully";
     }
+    public String deleteOfficeByOfficeNumber(int officeNumber){
+        Optional<Office> existingOffice = officeRepository.findByOfficeNumber(officeNumber);
+
+     if (existingOffice.isEmpty()) {
+            return "Office not found";
+        }
+        officeRepository.delete(existingOffice.get());
+        return "Office is deleted successfully";
+    }
 }

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import kigali.clinic.rw.service.OfficeService;
 
 @RestController
 @RequestMapping({"/api/offices", "/api/office"})
+@CrossOrigin ("*")
 public class OfficeController {
 
     private final OfficeService officeService;
@@ -82,6 +84,18 @@ public class OfficeController {
         String message = officeService.deleteOffice(id);
         if ("Office is deleted successfully".equals(message)) {
             return new ResponseEntity<>(message, HttpStatus.OK);
+        }
+        if ("Office not found".equals(message)) {
+            return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(message, HttpStatus.CONFLICT);
+    }
+    @DeleteMapping ("/delete/officeNumber/{officeNumber}")
+    public ResponseEntity<?> deleteOfficeByOfficeNumber(@PathVariable int officeNumber) {
+        String message = officeService.deleteOfficeByOfficeNumber(officeNumber);
+        if ("Office is deleted successfully".equals(message)) {
+            return new ResponseEntity<>(message, HttpStatus.OK);
+            
         }
         if ("Office not found".equals(message)) {
             return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
